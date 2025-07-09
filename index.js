@@ -41,6 +41,30 @@ class ProductCategoryComparisonTracker {
     }
 
     /**
+     * 필드명을 정규화하는 메서드 (BOM 제거)
+     * @param {string} fieldName - 원본 필드명
+     * @returns {string} 정규화된 필드명
+     */
+    normalizeFieldName(fieldName) {
+        // BOM 문자 제거 및 공백 제거
+        return fieldName.replace(/^\uFEFF/, '').trim();
+    }
+
+    /**
+     * 데이터 객체의 필드명을 정규화하는 메서드
+     * @param {Object} dataItem - 원본 데이터 객체
+     * @returns {Object} 정규화된 데이터 객체
+     */
+    normalizeDataItem(dataItem) {
+        const normalizedItem = {};
+        Object.keys(dataItem).forEach(key => {
+            const normalizedKey = this.normalizeFieldName(key);
+            normalizedItem[normalizedKey] = dataItem[key];
+        });
+        return normalizedItem;
+    }
+
+    /**
      * 데이터를 상품명으로 매핑하는 메서드
      * @param {Array} data - CSV 데이터 배열
      * @returns {Map} 상품명을 키로 하는 Map 객체
@@ -49,9 +73,12 @@ class ProductCategoryComparisonTracker {
         const productMap = new Map();
         
         data.forEach(item => {
-            const productName = item[this.productNameField];
+            // 필드명을 정규화
+            const normalizedItem = this.normalizeDataItem(item);
+            const productName = normalizedItem[this.productNameField];
+            
             if (productName && productName.trim()) {
-                productMap.set(productName.trim(), item);
+                productMap.set(productName.trim(), normalizedItem);
             }
         });
         
@@ -111,10 +138,16 @@ class ProductCategoryComparisonTracker {
 
             // 첫 번째 데이터로 필드명 확인
             if (this.oldData.length > 0) {
-                console.log('📋 과거 파일 필드명:', Object.keys(this.oldData[0]));
+                const oldFields = Object.keys(this.oldData[0]);
+                const normalizedOldFields = oldFields.map(field => this.normalizeFieldName(field));
+                console.log('📋 과거 파일 원본 필드명:', oldFields.slice(0, 5), '...');
+                console.log('📋 과거 파일 정규화된 필드명:', normalizedOldFields.slice(0, 5), '...');
             }
             if (this.newData.length > 0) {
-                console.log('📋 신규 파일 필드명:', Object.keys(this.newData[0]));
+                const newFields = Object.keys(this.newData[0]);
+                const normalizedNewFields = newFields.map(field => this.normalizeFieldName(field));
+                console.log('📋 신규 파일 원본 필드명:', newFields.slice(0, 5), '...');
+                console.log('📋 신규 파일 정규화된 필드명:', normalizedNewFields.slice(0, 5), '...');
             }
 
             // 상품명으로 매핑
@@ -141,7 +174,7 @@ class ProductCategoryComparisonTracker {
                 const oldProduct = oldProductMap.get(productName);
                 const newProduct = newProductMap.get(productName);
 
-                // 안전한 방식으로 필드 값 추출
+                // 안전한 방식으로 필드 값 추출 (이미 정규화된 데이터)
                 const oldCategories = oldProduct ? (oldProduct[this.categoryField] || '').toString().trim() : '';
                 const newCategories = newProduct ? (newProduct[this.categoryField] || '').toString().trim() : '';
                 const oldProductCode = oldProduct ? (oldProduct[this.productCodeField] || '').toString().trim() : '';
