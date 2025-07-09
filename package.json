@@ -1,0 +1,27 @@
+{
+  "name": "product-category-tracker",
+  "version": "1.0.0",
+  "description": "CSV 파일에서 상품분류 코드 변경 이력을 추적하는 도구",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "update-excel": "node excel_updater.js",
+    "compare": "node index.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "csv-parser": "^3.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "keywords": [
+    "csv",
+    "product",
+    "tracking",
+    "comparison",
+    "category",
+    "excel",
+    "xlsx"
+  ],
+  "author": "DevJihwan",
+  "license": "MIT"
+}
