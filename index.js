@@ -109,6 +109,14 @@ class ProductCategoryComparisonTracker {
             this.oldData = await this.readCSVFile(oldFilePath);
             this.newData = await this.readCSVFile(newFilePath);
 
+            // 첫 번째 데이터로 필드명 확인
+            if (this.oldData.length > 0) {
+                console.log('📋 과거 파일 필드명:', Object.keys(this.oldData[0]));
+            }
+            if (this.newData.length > 0) {
+                console.log('📋 신규 파일 필드명:', Object.keys(this.newData[0]));
+            }
+
             // 상품명으로 매핑
             console.log('🔍 상품명 기준으로 데이터 매핑 중...');
             const oldProductMap = this.createProductNameMap(this.oldData);
@@ -133,26 +141,25 @@ class ProductCategoryComparisonTracker {
                 const oldProduct = oldProductMap.get(productName);
                 const newProduct = newProductMap.get(productName);
 
-                const oldCategories = oldProduct ? oldProduct[this.categoryField] : '';
-                const newCategories = newProduct ? newProduct[this.categoryField] : '';
-                const oldProductCode = oldProduct ? oldProduct[this.productCodeField] : '';
-                const newProductCode = newProduct ? newProduct[this.productCodeField] : '';
+                // 안전한 방식으로 필드 값 추출
+                const oldCategories = oldProduct ? (oldProduct[this.categoryField] || '').toString().trim() : '';
+                const newCategories = newProduct ? (newProduct[this.categoryField] || '').toString().trim() : '';
+                const oldProductCode = oldProduct ? (oldProduct[this.productCodeField] || '').toString().trim() : '';
+                const newProductCode = newProduct ? (newProduct[this.productCodeField] || '').toString().trim() : '';
 
                 const changes = this.analyzeChanges(oldCategories, newCategories);
 
                 const result = {
                     productName: productName,
-                    productCode: {
-                        old: oldProductCode,
-                        new: newProductCode
+                    old: {
+                        productCode: oldProductCode,
+                        categories: oldCategories,
+                        categoriesArray: oldCategories ? oldCategories.split('|').filter(cat => cat.trim()) : []
                     },
-                    categories: {
-                        old: oldCategories,
-                        new: newCategories
-                    },
-                    categoriesArray: {
-                        old: oldCategories ? oldCategories.split('|').filter(cat => cat.trim()) : [],
-                        new: newCategories ? newCategories.split('|').filter(cat => cat.trim()) : []
+                    new: {
+                        productCode: newProductCode,
+                        categories: newCategories,
+                        categoriesArray: newCategories ? newCategories.split('|').filter(cat => cat.trim()) : []
                     },
                     changes: changes,
                     status: {
@@ -197,6 +204,11 @@ class ProductCategoryComparisonTracker {
                 fileInfo: {
                     oldFile: path.basename(oldFilePath),
                     newFile: path.basename(newFilePath)
+                },
+                fieldMappings: {
+                    productNameField: this.productNameField,
+                    categoryField: this.categoryField,
+                    productCodeField: this.productCodeField
                 }
             };
 
@@ -264,6 +276,23 @@ class ProductCategoryComparisonTracker {
     }
 
     /**
+     * 샘플 데이터를 출력하는 메서드 (디버깅용)
+     * @param {Object} comparisonResult - 비교 결과 데이터
+     */
+    printSampleData(comparisonResult) {
+        console.log('\n🔍 샘플 데이터 (처음 3개):');
+        comparisonResult.products.slice(0, 3).forEach((product, index) => {
+            console.log(`\n--- 샘플 ${index + 1} ---`);
+            console.log(`상품명: ${product.productName}`);
+            console.log(`과거 상품코드: ${product.old.productCode}`);
+            console.log(`신규 상품코드: ${product.new.productCode}`);
+            console.log(`과거 분류: ${product.old.categories}`);
+            console.log(`신규 분류: ${product.new.categories}`);
+            console.log(`변경됨: ${product.changes.hasChanged ? '예' : '아니오'}`);
+        });
+    }
+
+    /**
      * 메인 실행 메서드
      * @param {string} oldFilePath - 과거 파일 경로
      * @param {string} newFilePath - 신규 파일 경로
@@ -272,6 +301,9 @@ class ProductCategoryComparisonTracker {
         try {
             // 비교 수행
             const comparisonResult = await this.compareProductCategories(oldFilePath, newFilePath);
+
+            // 샘플 데이터 출력
+            this.printSampleData(comparisonResult);
 
             // 전체 결과 저장
             const timestamp = new Date().toISOString().split('T')[0];
